@@ -144,6 +144,7 @@ def strip_sentiment_score(snapshot_text: str) -> str:
 
 
 def md_to_html(text: str) -> str:
+    text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)
     text = re.sub(
         r'\[([^\]]+)\]\((https?://[^\)]+)\)',
         r'<a href="\2" target="_blank" rel="noopener noreferrer">\1</a>',
