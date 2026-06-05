@@ -8,9 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Note: claude-sonnet-4-20250514 is deprecated (retiring Jun 15 2026);
-# swap for claude-sonnet-4-6 when ready.
-MODEL = "claude-sonnet-4-20250514"
+MODEL = "claude-sonnet-4-6"
 SEARCH_TOOL = [{"type": "web_search_20250305", "name": "web_search"}]
 
 
@@ -32,33 +30,37 @@ Write a structured trend brief using these exact section headers:
 
 **TOP STORY**
 
-2–3 sentences on the single most significant development right now. Cite the source (publication name or domain).
+2–3 sentences on the single most significant development right now. Cite the source as a markdown hyperlink [Publication Name](https://url.com). Bold 2–3 key terms with **term** formatting.
 
 **NARRATIVE THREADS**
 
-• Thread 1 name: 1–2 sentences
+• **Thread 1 name**: 1–2 sentences. Bold key terms.
 
-• Thread 2 name: 1–2 sentences
+• **Thread 2 name**: 1–2 sentences. Bold key terms.
 
-• Thread 3 name: 1–2 sentences
+• **Thread 3 name**: 1–2 sentences. Bold key terms.
 
 **SENTIMENT SNAPSHOT**
 
-2–3 sentences on the overall mood—optimistic, cautious, uncertain—and what is driving it.
+2–3 sentences on the overall mood—optimistic, cautious, uncertain—and what is driving it. Bold 1–2 key terms. Cite any source as a markdown hyperlink [Source](https://url.com).
 
 **EMERGING SIGNAL**
 
-2–3 sentences on one early or weak signal not yet mainstream but worth watching.
+2–3 sentences on one early or weak signal not yet mainstream but worth watching. Bold the signal name and key terms. Cite source as [Source Name](https://url.com) if available.
 
 **SO WHAT**
 
-2–3 sentences on the key takeaway for a practitioner in this space.
+2–3 sentences on the key takeaway for a practitioner in this space. Bold the most critical action or insight.
 
 **TREND SIGNALS**
 
 4–6 short trend labels (2–5 words each), comma-separated.
 
-Example: AI-Generated Ads, Influencer Regulation, Shoppable Video"""
+Example: AI-Generated Ads, Influencer Regulation, Shoppable Video
+
+Formatting rules:
+- Always use real, clickable URLs: [Publication Name](https://actual-url.com)
+- Bold key terms with **double asterisks** (2–4 word phrases, not full sentences)"""
 
     messages = [{"role": "user", "content": prompt}]
 
@@ -77,12 +79,9 @@ Example: AI-Generated Ads, Influencer Regulation, Shoppable Video"""
             return text
 
         if response.stop_reason == "pause_turn":
-            # Server-side search hit iteration cap; continue without a new user message.
-            # The API detects the trailing server_tool_use block and resumes automatically.
             messages.append({"role": "assistant", "content": response.content})
-
         else:
-            return text  # unexpected stop_reason; return what we have
+            return text
 
     return text
 
@@ -98,8 +97,23 @@ def parse_signals(text: str) -> list[str]:
     if not raw:
         return []
     parts = re.split(r"[,\n;•\-–]", raw)
-    cleaned = [p.strip().strip("\"’*•–") for p in parts]
+    cleaned = [p.strip().strip("\"'*•–") for p in parts]
     return [c for c in cleaned if 2 < len(c) <= 50][:6]
+
+
+def md_to_html(text: str) -> str:
+    """Convert markdown links and **bold** to HTML for injection into HTML card divs."""
+    # [text](url) → clickable anchor
+    text = re.sub(
+        r'\[([^\]]+)\]\((https?://[^\)]+)\)',
+        r'<a href="\2" target="_blank" rel="noopener noreferrer">\1</a>',
+        text,
+    )
+    # **term** → highlighted mark
+    text = re.sub(r'\*\*([^*\n]+)\*\*', r'<mark>\1</mark>', text)
+    # newlines → <br>
+    text = re.sub(r'\n+', '<br>', text)
+    return text
 
 
 # ── Page setup ──────────────────────────────────────────────────────────────────────────────
@@ -138,6 +152,30 @@ st.markdown(
                border-radius:0 6px 6px 0; line-height:1.65; margin:6px 0; }
 .card-purple { background:#FDF4FF; border-left:4px solid #9333EA; padding:14px 18px;
                border-radius:0 6px 6px 0; line-height:1.65; margin:6px 0; }
+mark {
+    background: #FEF08A;
+    color: #713F12;
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: 600;
+}
+.card-green a, .card-amber a, .card-purple a {
+    color: #1D4ED8;
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: #BFDBFE;
+    text-underline-offset: 2px;
+}
+.card-green a:hover, .card-amber a:hover, .card-purple a:hover {
+    text-decoration-color: #1D4ED8;
+}
+.stMarkdown strong {
+    background: #FEF08A;
+    color: #713F12;
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: 600;
+}
 </style>
 """,
     unsafe_allow_html=True,
@@ -224,7 +262,7 @@ with left:
     if sections["EMERGING SIGNAL"]:
         st.markdown('<p class="meta-label">🔬 Emerging Signal</p>', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="card-purple">{sections["EMERGING SIGNAL"]}</div>',
+            f'<div class="card-purple">{md_to_html(sections["EMERGING SIGNAL"])}</div>',
             unsafe_allow_html=True,
         )
 
@@ -233,7 +271,7 @@ with right:
     if sections["TOP STORY"]:
         st.markdown('<p class="meta-label">🔥 Top Story</p>', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="card-green">{sections["TOP STORY"]}</div>',
+            f'<div class="card-green">{md_to_html(sections["TOP STORY"])}</div>',
             unsafe_allow_html=True,
         )
 
@@ -244,7 +282,7 @@ with right:
     if sections["SO WHAT"]:
         st.markdown('<p class="meta-label">💡 So What</p>', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="card-amber">{sections["SO WHAT"]}</div>',
+            f'<div class="card-amber">{md_to_html(sections["SO WHAT"])}</div>',
             unsafe_allow_html=True,
         )
 
