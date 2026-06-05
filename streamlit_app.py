@@ -149,7 +149,7 @@ def md_to_html(text: str) -> str:
         r'<a href="\2" target="_blank" rel="noopener noreferrer">\1</a>',
         text,
     )
-    text = re.sub(r'\*\*([^*\n]+)\*\*', r'<mark>\1</mark>', text)
+    text = re.sub(r'\*\*([^*\n]+)\*\*', r'<strong>\1</strong>', text)
     text = re.sub(r'\n+', '<br>', text)
     return text
 
@@ -196,13 +196,6 @@ st.markdown(
                 border-radius:0 6px 6px 0; line-height:1.75; margin:6px 0 14px; }
 .card-blue    { background:#EFF6FF; border-left:4px solid #2563EB; padding:14px 18px;
                 border-radius:0 6px 6px 0; line-height:1.65; margin:6px 0; }
-mark {
-    background: #FEF08A;
-    color: #713F12;
-    border-radius: 3px;
-    padding: 0 2px;
-    font-weight: 600;
-}
 .card-green a, .card-amber a, .card-purple a,
 .card-slate a, .card-threads a, .card-blue a {
     color: #1D4ED8;
@@ -214,13 +207,6 @@ mark {
 .card-green a:hover, .card-amber a:hover, .card-purple a:hover,
 .card-slate a:hover, .card-threads a:hover, .card-blue a:hover {
     text-decoration-color: #1D4ED8;
-}
-.stMarkdown strong {
-    background: #FEF08A;
-    color: #713F12;
-    border-radius: 3px;
-    padding: 0 2px;
-    font-weight: 600;
 }
 </style>
 """,
