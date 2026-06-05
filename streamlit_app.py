@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MODEL = "claude-sonnet-4-20250514"
+MODEL = "claude-sonnet-4-6"
 SEARCH_TOOL = [{"type": "web_search_20250305", "name": "web_search"}]
 
 
