@@ -271,15 +271,6 @@ if (go or auto_run) and topic.strip():
 
 # ── Display ─────────────────────────────────────────────────────────────────────────────────
 if "raw" not in st.session_state:
-    st.markdown('<p class="meta-label" style="margin-top:8px">Suggested topics</p>', unsafe_allow_html=True)
-    starters = ["Generative AI", "Climate Tech", "Fintech", "Digital Marketing", "Healthcare AI"]
-    s_cols = st.columns(len(starters))
-    for col, t in zip(s_cols, starters):
-        with col:
-            if st.button(t, key=f"starter_{t}", use_container_width=True):
-                st.session_state["topic_input"] = t
-                st.session_state["_auto_run"] = True
-                st.rerun()
     st.stop()
 
 raw = st.session_state["raw"]
