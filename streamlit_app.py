@@ -397,7 +397,6 @@ if related_topics:
         with col:
             if st.button(rt, key=f"rt_{rt}", use_container_width=True):
                 st.session_state["topic_input"] = rt
-                st.session_state["_auto_run"] = True
                 st.rerun()
 
 with st.expander("📄 Raw output"):
