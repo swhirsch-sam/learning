@@ -79,7 +79,8 @@ Score: [Optimistic | Mixed | Cautious | Uncertain]
 Formatting rules:
 - Use real, clickable URLs in every section: [Name](https://actual-url.com)
 - Bold key terms with **double asterisks** (2–4 word phrases only)
-- Keep every section tight — no filler sentences"""
+- Keep every section tight — no filler sentences
+- Never use # or ## markdown headings — use only the **SECTION NAME** format above"""
 
     messages = [{"role": "user", "content": prompt}]
 
@@ -218,19 +219,18 @@ st.title("📡 Trend Intelligence Dashboard")
 st.caption("Real-time research synthesized by Claude · Powered by web search")
 
 # ── Input row ─────────────────────────────────────────────────────────────────────────────
-col_input, col_btn = st.columns([5, 1])
-
-with col_input:
-    topic = st.text_input(
-        "Topic",
-        value="digital marketing and social media",
-        placeholder="e.g. generative AI, climate tech, fintech…",
-        label_visibility="collapsed",
-        key="topic_input",
-    )
-
-with col_btn:
-    go = st.button("▶  Run Brief", type="primary", use_container_width=True)
+with st.form("search_form"):
+    col_input, col_btn = st.columns([5, 1])
+    with col_input:
+        topic = st.text_input(
+            "Topic",
+            value="digital marketing and social media",
+            placeholder="e.g. generative AI, climate tech, fintech…",
+            label_visibility="collapsed",
+            key="topic_input",
+        )
+    with col_btn:
+        go = st.form_submit_button("▶  Run Brief", type="primary", use_container_width=True)
 
 # ── Topic history ─────────────────────────────────────────────────────────────────────────
 auto_run = st.session_state.pop("_auto_run", False)
@@ -271,7 +271,15 @@ if (go or auto_run) and topic.strip():
 
 # ── Display ─────────────────────────────────────────────────────────────────────────────────
 if "raw" not in st.session_state:
-    st.info("Enter a topic above and click **▶ Run Brief** to generate a trend report.")
+    st.markdown('<p class="meta-label" style="margin-top:8px">Suggested topics</p>', unsafe_allow_html=True)
+    starters = ["Generative AI", "Climate Tech", "Fintech", "Digital Marketing", "Healthcare AI"]
+    s_cols = st.columns(len(starters))
+    for col, t in zip(s_cols, starters):
+        with col:
+            if st.button(t, key=f"starter_{t}", use_container_width=True):
+                st.session_state["topic_input"] = t
+                st.session_state["_auto_run"] = True
+                st.rerun()
     st.stop()
 
 raw = st.session_state["raw"]
