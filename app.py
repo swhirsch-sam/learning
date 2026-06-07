@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODEL = "claude-sonnet-4-6"
-SEARCH_TOOL = [{"type": "web_search_20250305", "name": "web_search"}]
+SEARCH_TOOL = [{"type": "web_search_20250305", "name": "web_search", "max_uses": 6}]
 
 SENTIMENT_COLORS = {
     "Optimistic": ("#DCFCE7", "#16A34A", "#14532D"),
