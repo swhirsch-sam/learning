@@ -251,7 +251,12 @@ st.write("")
 # ── Fetch ─────────────────────────────────────────────────────────────────────────────────
 if (go or auto_run) and topic.strip():
     with st.status(f'Researching "{topic.strip()}"…', expanded=True) as status:
-        raw = run_research(topic.strip(), on_step=st.write)
+        try:
+            raw = run_research(topic.strip(), on_step=st.write)
+        except anthropic.APIError as e:
+            status.update(label="Research failed", state="error", expanded=True)
+            st.error(f"Couldn't reach Claude: {e}. Please try again in a moment.")
+            st.stop()
         status.update(
             label=f'Brief ready · {topic.strip().title()}',
             state="complete",
@@ -305,88 +310,91 @@ sections = {
 signals = parse_signals(raw)
 related_topics = parse_related_topics(raw)
 
-left, right = st.columns([2, 3], gap="large")
+tab_brief, tab_raw = st.tabs(["📋 Brief", "📄 Raw Output"])
 
-# ── Left column ─────────────────────────────────────────────────────────────────────────────
-with left:
-    st.markdown('<p class="meta-label">🔖 Trending Topics</p>', unsafe_allow_html=True)
-    if signals:
-        st.markdown(
-            "".join(f'<span class="chip">{s}</span>' for s in signals),
-            unsafe_allow_html=True,
-        )
-    else:
-        st.caption("No signals extracted.")
+with tab_brief:
+    left, right = st.columns([2, 3], gap="large")
 
-    st.write("")
-
-    if sections["SENTIMENT SNAPSHOT"]:
-        st.markdown('<p class="meta-label">🧭 Sentiment Snapshot</p>', unsafe_allow_html=True)
-        score = parse_sentiment_score(sections["SENTIMENT SNAPSHOT"])
-        if score:
-            bg, border, fg = SENTIMENT_COLORS.get(score, ("#F1F5F9", "#64748B", "#1E293B"))
+    # ── Left column ───────────────────────────────────────────────────────────────────────
+    with left:
+        st.markdown('<p class="meta-label">🔖 Trending Topics</p>', unsafe_allow_html=True)
+        if signals:
             st.markdown(
-                f'<span style="background:{bg};color:{fg};border:1px solid {border};'
-                f'padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;'
-                f'display:inline-block;margin-bottom:6px">{score}</span>',
+                "".join(f'<span class="chip">{s}</span>' for s in signals),
                 unsafe_allow_html=True,
             )
-        clean_snapshot = strip_sentiment_score(sections["SENTIMENT SNAPSHOT"])
+        else:
+            st.caption("No signals extracted.")
+
+        st.write("")
+
+        if sections["SENTIMENT SNAPSHOT"]:
+            st.markdown('<p class="meta-label">🧭 Sentiment Snapshot</p>', unsafe_allow_html=True)
+            score = parse_sentiment_score(sections["SENTIMENT SNAPSHOT"])
+            if score:
+                bg, border, fg = SENTIMENT_COLORS.get(score, ("#F1F5F9", "#64748B", "#1E293B"))
+                st.markdown(
+                    f'<span style="background:{bg};color:{fg};border:1px solid {border};'
+                    f'padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;'
+                    f'display:inline-block;margin-bottom:6px">{score}</span>',
+                    unsafe_allow_html=True,
+                )
+            clean_snapshot = strip_sentiment_score(sections["SENTIMENT SNAPSHOT"])
+            st.markdown(
+                f'<div class="card-slate">{md_to_html(clean_snapshot)}</div>',
+                unsafe_allow_html=True,
+            )
+
+        st.write("")
+
+        if sections["EMERGING SIGNAL"]:
+            st.markdown('<p class="meta-label">🔬 Emerging Signal</p>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="card-purple">{md_to_html(sections["EMERGING SIGNAL"])}</div>',
+                unsafe_allow_html=True,
+            )
+
+        st.write("")
+
+        if sections["LEARN MORE"]:
+            st.markdown('<p class="meta-label">📚 Learn More</p>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="card-blue">{md_to_html(sections["LEARN MORE"])}</div>',
+                unsafe_allow_html=True,
+            )
+
+    # ── Right column ──────────────────────────────────────────────────────────────────────
+    with right:
+        if sections["TOP STORY"]:
+            st.markdown('<p class="meta-label">🔥 Top Story</p>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="card-green">{md_to_html(sections["TOP STORY"])}</div>',
+                unsafe_allow_html=True,
+            )
+
+        if sections["NARRATIVE THREADS"]:
+            st.markdown('<p class="meta-label">🧵 Narrative Threads</p>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="card-threads">{md_to_html(sections["NARRATIVE THREADS"])}</div>',
+                unsafe_allow_html=True,
+            )
+
+        if sections["SO WHAT"]:
+            st.markdown('<p class="meta-label">💡 So What</p>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="card-amber">{md_to_html(sections["SO WHAT"])}</div>',
+                unsafe_allow_html=True,
+            )
+
+    # ── Related Topics ────────────────────────────────────────────────────────────────────
+    if related_topics:
+        st.write("")
+        st.divider()
+        st.markdown('<p class="meta-label">🔀 Related Topics</p>', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="card-slate">{md_to_html(clean_snapshot)}</div>',
+            "".join(f'<span class="chip">{rt}</span>' for rt in related_topics),
             unsafe_allow_html=True,
         )
 
-    st.write("")
-
-    if sections["EMERGING SIGNAL"]:
-        st.markdown('<p class="meta-label">🔬 Emerging Signal</p>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="card-purple">{md_to_html(sections["EMERGING SIGNAL"])}</div>',
-            unsafe_allow_html=True,
-        )
-
-    st.write("")
-
-    if sections["LEARN MORE"]:
-        st.markdown('<p class="meta-label">📚 Learn More</p>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="card-blue">{md_to_html(sections["LEARN MORE"])}</div>',
-            unsafe_allow_html=True,
-        )
-
-# ── Right column ──────────────────────────────────────────────────────────────────────────────
-with right:
-    if sections["TOP STORY"]:
-        st.markdown('<p class="meta-label">🔥 Top Story</p>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="card-green">{md_to_html(sections["TOP STORY"])}</div>',
-            unsafe_allow_html=True,
-        )
-
-    if sections["NARRATIVE THREADS"]:
-        st.markdown('<p class="meta-label">🧵 Narrative Threads</p>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="card-threads">{md_to_html(sections["NARRATIVE THREADS"])}</div>',
-            unsafe_allow_html=True,
-        )
-
-    if sections["SO WHAT"]:
-        st.markdown('<p class="meta-label">💡 So What</p>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="card-amber">{md_to_html(sections["SO WHAT"])}</div>',
-            unsafe_allow_html=True,
-        )
-
-# ── Related Topics ──────────────────────────────────────────────────────────────────────────
-if related_topics:
-    st.write("")
-    st.divider()
-    st.markdown('<p class="meta-label">🔀 Related Topics</p>', unsafe_allow_html=True)
-    st.markdown(
-        "".join(f'<span class="chip">{rt}</span>' for rt in related_topics),
-        unsafe_allow_html=True,
-    )
-
-with st.expander("📄 Raw output"):
+with tab_raw:
     st.markdown(raw)
