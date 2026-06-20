@@ -1,15 +1,11 @@
-import os
 import re
 from datetime import datetime
 
-import anthropic
 import streamlit as st
-from dotenv import load_dotenv
 
-load_dotenv()
-
-MODEL = "claude-sonnet-4-6"
-SEARCH_TOOL = [{"type": "web_search_20250305", "name": "web_search"}]
+from digest import DIGEST_SOURCES, run_daily_digest
+from shared import MODEL, SEARCH_TOOL, md_to_html
+from shared import get_client as _get_client
 
 SENTIMENT_COLORS = {
     "Optimistic": ("#DCFCE7", "#16A34A", "#14532D"),
@@ -20,12 +16,13 @@ SENTIMENT_COLORS = {
 
 
 @st.cache_resource
-def get_client() -> anthropic.Anthropic:
-    key = os.environ.get("ANTHROPIC_API_KEY")
-    if not key:
-        st.error("ANTHROPIC_API_KEY environment variable is not set.")
+def get_client():
+    """Cached Anthropic client with a friendly in-app error if the key is unset."""
+    try:
+        return _get_client()
+    except RuntimeError as exc:
+        st.error(str(exc))
         st.stop()
-    return anthropic.Anthropic(api_key=key)
 
 
 def run_research(topic: str, on_step=None) -> str:
@@ -144,20 +141,58 @@ def strip_sentiment_score(snapshot_text: str) -> str:
     return re.sub(r'\n?Score:\s*(Optimistic|Mixed|Cautious|Uncertain)[^\n]*', '', snapshot_text, flags=re.IGNORECASE).strip()
 
 
-def md_to_html(text: str) -> str:
-    text = re.sub(
-        r'\[([^\]]+)\]\((https?://[^\)]+)\)',
-        r'<a href="\2" target="_blank" rel="noopener noreferrer">\1</a>',
-        text,
-    )
-    text = re.sub(r'\*\*([^*\n]+)\*\*', r'<strong>\1</strong>', text)
-    text = re.sub(r'\n+', '<br>', text)
-    return text
+DIGEST_CARD_CLASSES = ["card-green", "card-blue", "card-purple", "card-amber"]
+
+
+def parse_digest_sections(text: str) -> list[tuple[str, str]]:
+    """Split the digest into (header, body) pairs by its **ALL CAPS** headers."""
+    matches = list(re.finditer(r'^\*\*([A-Z][A-Z0-9 &/\-]{2,})\*\*\s*$', text, re.MULTILINE))
+    sections = []
+    for idx, m in enumerate(matches):
+        start = m.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+        body = text[start:end].strip()
+        if body:
+            sections.append((m.group(1).strip(), body))
+    return sections
+
+
+def render_digest(raw: str, fetched_at: str) -> None:
+    c1, c2, c3 = st.columns([4, 1, 1])
+    with c1:
+        st.subheader("📰 Daily Marketing Digest")
+    with c2:
+        st.caption(f"🕐 {fetched_at}")
+    with c3:
+        st.download_button(
+            "⬇ Export",
+            data=raw,
+            file_name="daily-digest.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+
+    if st.button("←  Back to Trend Brief"):
+        st.session_state["show_digest"] = False
+        st.rerun()
+
+    sections = parse_digest_sections(raw)
+    if not sections:
+        st.markdown(raw)
+        return
+
+    for i, (header, body) in enumerate(sections):
+        cls = "card-slate" if "CROSS" in header else DIGEST_CARD_CLASSES[i % len(DIGEST_CARD_CLASSES)]
+        st.markdown(f'<p class="meta-label">{header.title()}</p>', unsafe_allow_html=True)
+        st.markdown(f'<div class="{cls}">{md_to_html(body)}</div>', unsafe_allow_html=True)
+
+    with st.expander("📄 Raw output"):
+        st.markdown(raw)
 
 
 # ── Page setup ──────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Trend Intelligence",
+    page_title="Intelligence Hub",
     page_icon="📡",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -215,8 +250,43 @@ st.markdown(
 )
 
 # ── Header ─────────────────────────────────────────────────────────────────────────────────
-st.title("📡 Trend Intelligence Dashboard")
-st.caption("Real-time research synthesized by Claude · Powered by web search")
+st.title("📡 Intelligence Hub")
+st.caption("Real-time research & daily digests, synthesized by Claude · Powered by web search")
+
+# ── Sidebar · Daily Digest ───────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("### 📰 Daily Digest")
+    st.caption(
+        "Marketing, branding, digital & social media news from the last 24–48h — "
+        "the same brief that goes out by email each morning."
+    )
+    if st.button("▶  Run Daily Digest", type="primary", use_container_width=True):
+        try:
+            with st.status("Compiling the daily digest…", expanded=True) as status:
+                digest_raw = run_daily_digest(on_step=st.write)
+                status.update(label="Digest ready", state="complete", expanded=False)
+            st.session_state.update(
+                digest_raw=digest_raw,
+                digest_fetched_at=datetime.now().strftime("%d %b %Y, %H:%M"),
+                show_digest=True,
+            )
+            st.rerun()
+        except RuntimeError as exc:
+            st.error(str(exc))
+
+    if st.session_state.get("digest_raw") and not st.session_state.get("show_digest"):
+        if st.button("📰  View last digest", use_container_width=True):
+            st.session_state["show_digest"] = True
+            st.rerun()
+
+    with st.expander("Sources covered"):
+        for category, pubs in DIGEST_SOURCES.items():
+            st.markdown(f"**{category}** — {', '.join(pubs)}")
+
+# ── Digest view takes over the main area when active ──────────────────────────────────────────
+if st.session_state.get("show_digest") and st.session_state.get("digest_raw"):
+    render_digest(st.session_state["digest_raw"], st.session_state["digest_fetched_at"])
+    st.stop()
 
 # ── Input row ─────────────────────────────────────────────────────────────────────────────
 with st.form("search_form"):

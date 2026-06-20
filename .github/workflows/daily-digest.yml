@@ -1,0 +1,32 @@
+name: Daily Marketing Digest
+
+on:
+  schedule:
+    # GitHub Actions cron runs in UTC and does NOT auto-adjust for daylight saving.
+    # For ~7am ET, use "0 11 * * *" during EDT (Mar–Nov) or "0 12 * * *" during EST (Nov–Mar).
+    - cron: "0 11 * * *"
+  # Allow running on demand from the Actions tab (handy for testing).
+  workflow_dispatch: {}
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build digest and send email
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+        run: python scripts/run_digest_and_email.py
