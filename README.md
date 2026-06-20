@@ -10,12 +10,10 @@ parsers, or third-party automation/email services.
 
 ## Features
 
-### Trend Brief
-Enter any topic and get a structured brief — top story, narrative threads, a
-sentiment snapshot, an emerging signal, "so what", and resources — synthesized
-from live web search.
+The app is two tools, each its own page (native sidebar navigation). **Daily
+Update** is the default landing page; **Search** is the second.
 
-### Daily Marketing Digest
+### 📰 Daily Update
 A once-a-day roundup of what a curated set of publications covered in the last
 24–48 hours, across five areas:
 
@@ -29,17 +27,38 @@ Themes** section flagging where multiple sources are converging. The source list
 lives in `DIGEST_SOURCES` in `digest.py` — swap publications in or out there and
 the prompt updates automatically; no other code changes needed.
 
-You can preview the digest in the app via the **Daily Digest** button in the
-sidebar, or have it emailed automatically each morning.
+In the app, the digest is generated **on demand** via the **Generate / Refresh**
+button (it isn't auto-run on page load, so you only spend when you ask). The
+scheduled morning email is the one guaranteed daily run.
+
+### 🔍 Search
+Enter any topic and get a structured brief — top story, narrative threads, a
+sentiment snapshot, an emerging signal, "so what", and resources — synthesized
+from live web search.
+
+### Web search & cost
+
+Both tools use Claude's `web_search` tool with two cost controls (in
+`shared.py`): the **dynamic-filtering** version (`web_search_20260209`), which
+filters results before they enter the context window, and a **`max_uses`** cap
+that bounds searches per run. A typical digest run costs roughly **$0.20–$0.40**
+on Sonnet 4.6 ($10 / 1,000 searches + token costs).
+
+> Dynamic filtering runs server-side code execution under the hood — your
+> account must have **web search and code execution enabled** in the Claude
+> Console. If code execution isn't available, set the tool `type` in `shared.py`
+> back to `web_search_20250305` (basic search, no filtering).
 
 ## Layout
 
 | File | Purpose |
 | --- | --- |
-| `streamlit_app.py` | Streamlit UI (trend brief + digest preview). `app.py` is a deploy-time mirror. |
+| `streamlit_app.py` | Entry point / router: page config, shared CSS, `st.navigation`. `app.py` is a deploy-time mirror. |
+| `views/daily_update.py` | Daily Update page (digest preview) |
+| `views/search.py` | Search page (`run_research()` + trend-brief UI) |
 | `digest.py` | `DIGEST_SOURCES` and `run_daily_digest()` |
 | `mailer.py` | `send_email()` — stdlib `smtplib` over SSL |
-| `shared.py` | Shared client/model config and the markdown→HTML helper |
+| `shared.py` | Shared client/model config, web-search tool, markdown→HTML helper |
 | `scripts/run_digest_and_email.py` | Headless entry point: build digest + email it |
 | `.github/workflows/daily-digest.yml` | Daily cron that runs the script |
 
