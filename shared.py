@@ -15,16 +15,16 @@ load_dotenv()
 
 MODEL = "claude-sonnet-4-6"
 
-# Cost controls on web search (the dominant cost of a run):
-#   • web_search_20260209 adds *dynamic filtering* — Claude filters results before
-#     they enter the context window, cutting the input-token cost. Supported on
-#     Sonnet 4.6 and Opus 4.6/4.7/4.8; the under-the-hood code execution is free
-#     alongside web search, and no separate code_execution tool is declared.
-#   • max_uses caps how many searches a single run may make, bounding both the
-#     per-search charge and the result tokens pulled into context.
-# Fallback: if the account doesn't have code execution enabled, set the type back
-# to "web_search_20250305" (basic search, no dynamic filtering).
-SEARCH_TOOL = [{"type": "web_search_20260209", "name": "web_search", "max_uses": 8}]
+# Web search cost control: max_uses caps how many searches a single run may make,
+# bounding both the per-search charge ($10 / 1,000 searches) and the result tokens
+# pulled into context.
+#
+# Using the basic search tool (web_search_20250305) by default — it has no extra
+# account requirements. To further cut the input-token cost, upgrade the type to
+# "web_search_20260209" for *dynamic filtering* (Claude filters results before they
+# enter the context window). That variant runs code execution under the hood, so
+# the account must have code execution enabled in the Claude Console.
+SEARCH_TOOL = [{"type": "web_search_20250305", "name": "web_search", "max_uses": 8}]
 
 
 def get_client() -> anthropic.Anthropic:

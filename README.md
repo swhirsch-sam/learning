@@ -38,16 +38,15 @@ from live web search.
 
 ### Web search & cost
 
-Both tools use Claude's `web_search` tool with two cost controls (in
-`shared.py`): the **dynamic-filtering** version (`web_search_20260209`), which
-filters results before they enter the context window, and a **`max_uses`** cap
-that bounds searches per run. A typical digest run costs roughly **$0.20–$0.40**
-on Sonnet 4.6 ($10 / 1,000 searches + token costs).
+Both tools use Claude's `web_search` tool with a **`max_uses`** cap (in
+`shared.py`) that bounds searches per run. A typical digest run costs roughly
+**$0.30–$0.50** on Sonnet 4.6 ($10 / 1,000 searches + token costs).
 
-> Dynamic filtering runs server-side code execution under the hood — your
-> account must have **web search and code execution enabled** in the Claude
-> Console. If code execution isn't available, set the tool `type` in `shared.py`
-> back to `web_search_20250305` (basic search, no filtering).
+> **Optional cost reducer:** change the tool `type` in `shared.py` from
+> `web_search_20250305` to `web_search_20260209` for **dynamic filtering**
+> (Claude filters results before they enter the context window, cutting the
+> token cost). That variant runs code execution under the hood, so your account
+> must have **code execution enabled** in the Claude Console.
 
 ## Layout
 
