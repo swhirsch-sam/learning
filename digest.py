@@ -9,7 +9,7 @@ prompt is built from it dynamically, so swapping a publication in or out is a
 one-line edit here with no other code changes.
 """
 
-from shared import MODEL, SEARCH_TOOL, get_client
+from shared import MAX_AGENT_ROUNDS, MAX_TOKENS, MODEL, SEARCH_TOOL, get_client
 
 DIGEST_SOURCES = {
     "Marketing & Advertising": ["Marketing Brew", "Ad Age", "Marketing Dive", "The Drum"],
@@ -65,10 +65,10 @@ Formatting rules:
     messages = [{"role": "user", "content": prompt}]
 
     text = ""
-    for i in range(5):
+    for i in range(MAX_AGENT_ROUNDS):
         response = client.messages.create(
             model=MODEL,
-            max_tokens=4096,
+            max_tokens=MAX_TOKENS,
             tools=SEARCH_TOOL,
             messages=messages,
         )

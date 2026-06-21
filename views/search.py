@@ -3,9 +3,10 @@
 import re
 from datetime import datetime
 
+import anthropic
 import streamlit as st
 
-from shared import MODEL, SEARCH_TOOL, md_to_html
+from shared import MAX_AGENT_ROUNDS, MAX_TOKENS, MODEL, SEARCH_TOOL, md_to_html
 from shared import get_client as _get_client
 
 SENTIMENT_COLORS = {
@@ -83,10 +84,10 @@ Formatting rules:
     messages = [{"role": "user", "content": prompt}]
 
     text = ""
-    for i in range(5):
+    for i in range(MAX_AGENT_ROUNDS):
         response = client.messages.create(
             model=MODEL,
-            max_tokens=4096,
+            max_tokens=MAX_TOKENS,
             tools=SEARCH_TOOL,
             messages=messages,
         )
@@ -175,24 +176,27 @@ def render() -> None:
     st.write("")
 
     if (go or auto_run) and topic.strip():
-        with st.status(f'Researching "{topic.strip()}"…', expanded=True) as status:
-            raw = run_research(topic.strip(), on_step=st.write)
-            status.update(
-                label=f'Brief ready · {topic.strip().title()}',
-                state="complete",
-                expanded=False,
+        try:
+            with st.status(f'Researching "{topic.strip()}"…', expanded=True) as status:
+                raw = run_research(topic.strip(), on_step=st.write)
+                status.update(
+                    label=f'Brief ready · {topic.strip().title()}',
+                    state="complete",
+                    expanded=False,
+                )
+        except anthropic.APIError as exc:
+            st.error(f"The research request to Claude failed: {exc}")
+        else:
+            history = st.session_state.get("topic_history", [])
+            if topic.strip() not in history:
+                history = [topic.strip()] + history[:4]
+
+            st.session_state.update(
+                raw=raw,
+                topic=topic.strip(),
+                fetched_at=datetime.now().strftime("%d %b %Y, %H:%M"),
+                topic_history=history,
             )
-
-        history = st.session_state.get("topic_history", [])
-        if topic.strip() not in history:
-            history = [topic.strip()] + history[:4]
-
-        st.session_state.update(
-            raw=raw,
-            topic=topic.strip(),
-            fetched_at=datetime.now().strftime("%d %b %Y, %H:%M"),
-            topic_history=history,
-        )
 
     if "raw" not in st.session_state:
         return
@@ -228,6 +232,14 @@ def render() -> None:
 
     signals = parse_signals(raw)
     related_topics = parse_related_topics(raw)
+
+    # If none of the expected sections parsed, the model deviated from the
+    # prompt format — fall back to rendering the raw brief (mirrors the
+    # Daily Update page) rather than showing an empty layout.
+    if not any(sections.values()) and not signals and not related_topics:
+        st.warning("Couldn't parse the structured brief — showing the raw output instead.")
+        st.markdown(raw)
+        return
 
     left, right = st.columns([2, 3], gap="large")
 

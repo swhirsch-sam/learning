@@ -5,6 +5,7 @@ Keeping the client, model config, and markdown→HTML helper here (rather than i
 importing Streamlit or executing the whole page at import time.
 """
 
+import html
 import os
 import re
 
@@ -14,6 +15,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODEL = "claude-sonnet-4-6"
+
+# Generation limits shared by the daily digest and the on-demand search brief.
+# MAX_AGENT_ROUNDS caps how many times we resume after a web-search ``pause_turn``
+# before giving up; MAX_TOKENS bounds each individual model response.
+MAX_TOKENS = 4096
+MAX_AGENT_ROUNDS = 5
 
 # Web search cost control: max_uses caps how many searches a single run may make,
 # bounding both the per-search charge ($10 / 1,000 searches) and the result tokens
@@ -41,7 +48,14 @@ def get_client() -> anthropic.Anthropic:
 
 def md_to_html(text: str) -> str:
     """Convert the lightweight markdown Claude emits (links, bold, line breaks)
-    into the inline HTML used by both the app cards and the digest email."""
+    into the inline HTML used by both the app cards and the digest email.
+
+    The text is HTML-escaped first, so any raw ``<`` / ``>`` / ``&`` in model
+    output or echoed web-search content is neutralized before we add our own
+    ``<a>`` / ``<strong>`` tags. Escaping leaves the markdown delimiters
+    (``[`` ``]`` ``(`` ``)`` ``*`` and newlines) untouched, so the substitutions
+    below still match; an escaped ``&amp;`` inside a URL is valid in an href."""
+    text = html.escape(text)
     text = re.sub(
         r'\[([^\]]+)\]\((https?://[^\)]+)\)',
         r'<a href="\2" target="_blank" rel="noopener noreferrer">\1</a>',

@@ -1,13 +1,15 @@
 """Daily Update page — preview the marketing/branding digest on demand.
 
 Generation is button-triggered (not on page load) so the app only spends when
-someone explicitly asks for it; the scheduled morning email is the one
-guaranteed daily run.
+someone explicitly asks for it. The same digest can also be emailed by running
+the ``daily-digest`` GitHub Actions workflow manually — there is no automatic
+scheduled run.
 """
 
 import re
 from datetime import datetime
 
+import anthropic
 import streamlit as st
 
 from digest import DIGEST_SOURCES, run_daily_digest
@@ -83,6 +85,8 @@ def render() -> None:
             )
         except RuntimeError as exc:
             st.error(str(exc))
+        except anthropic.APIError as exc:
+            st.error(f"The digest request to Claude failed: {exc}")
 
     raw = st.session_state.get("digest_raw")
     if not raw:
