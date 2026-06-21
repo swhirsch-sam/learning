@@ -1,11 +1,13 @@
 name: Daily Marketing Digest
 
 on:
-  schedule:
-    # GitHub Actions cron runs in UTC and does NOT auto-adjust for daylight saving.
-    # For ~7am ET, use "0 11 * * *" during EDT (Mar–Nov) or "0 12 * * *" during EST (Nov–Mar).
-    - cron: "0 11 * * *"
-  # Allow running on demand from the Actions tab (handy for testing).
+  # No automatic schedule — this digest runs ONLY when triggered manually.
+  # To re-enable a daily run, uncomment the schedule block below. GitHub Actions
+  # cron runs in UTC and does NOT auto-adjust for daylight saving. For ~7am ET, use
+  # "0 11 * * *" during EDT (Mar–Nov) or "0 12 * * *" during EST (Nov–Mar).
+  # schedule:
+  #   - cron: "0 11 * * *"
+  # Run on demand from the Actions tab (or via `gh workflow run daily-digest.yml`).
   workflow_dispatch: {}
 
 jobs:

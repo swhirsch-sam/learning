@@ -29,7 +29,8 @@ the prompt updates automatically; no other code changes needed.
 
 In the app, the digest is generated **on demand** via the **Generate / Refresh**
 button (it isn't auto-run on page load, so you only spend when you ask). The
-scheduled morning email is the one guaranteed daily run.
+email digest also runs **only on demand** — you trigger it yourself (see below);
+there is no automatic daily run.
 
 ### 🔍 Search
 Enter any topic and get a structured brief — top story, narrative threads, a
@@ -61,14 +62,17 @@ Both tools use Claude's `web_search` tool with a **`max_uses`** cap (in
 | `scripts/run_digest_and_email.py` | Headless entry point: build digest + email it |
 | `.github/workflows/daily-digest.yml` | Daily cron that runs the script |
 
-## Daily email schedule
+## Email digest (run it yourself)
 
-The digest is sent by the `daily-digest.yml` GitHub Actions workflow.
+The digest email is sent by the `daily-digest.yml` GitHub Actions workflow, which
+runs **only when you trigger it** — there is no automatic schedule. Run it from the
+repo's **Actions** tab → **Daily Marketing Digest** → **Run workflow**, or via
+`gh workflow run daily-digest.yml`.
 
-> **Note:** GitHub Actions cron runs in **UTC** and does not auto-adjust for
-> daylight saving. For roughly **7am ET**, use `0 11 * * *` during EDT
-> (Mar–Nov) or `0 12 * * *` during EST (Nov–Mar). The workflow ships with
-> `0 11 * * *` and can also be triggered manually from the Actions tab.
+> **Re-enabling a daily schedule:** uncomment the `schedule:` block in
+> `.github/workflows/daily-digest.yml`. GitHub Actions cron runs in **UTC** and does
+> not auto-adjust for daylight saving — for roughly **7am ET**, use `0 11 * * *`
+> during EDT (Mar–Nov) or `0 12 * * *` during EST (Nov–Mar).
 
 ## Configuration
 
