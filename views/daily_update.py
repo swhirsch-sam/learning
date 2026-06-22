@@ -13,6 +13,21 @@ import streamlit as st
 from digest import DIGEST_SOURCES, run_daily_digest
 from shared import md_to_html
 
+SOURCE_URLS: dict[str, str] = {
+    "Marketing Brew": "https://www.marketingbrew.com",
+    "Ad Age": "https://adage.com",
+    "Marketing Dive": "https://www.marketingdive.com",
+    "The Drum": "https://www.thedrum.com",
+    "MarTech": "https://martech.org",
+    "Search Engine Land": "https://searchengineland.com",
+    "Digiday": "https://digiday.com",
+    "Branding Strategy Insider": "https://www.brandingstrategyinsider.com",
+    "WARC": "https://www.warc.com",
+    "Brandwatch": "https://www.brandwatch.com",
+    "Social Media Today": "https://www.socialmediatoday.com",
+    "Sprout Social Insights": "https://sproutsocial.com/insights",
+}
+
 DIGEST_CARD_CLASSES = ["card-green", "card-blue", "card-purple", "card-amber"]
 
 
@@ -70,7 +85,11 @@ def render() -> None:
 
     with st.expander("Sources covered"):
         for category, pubs in DIGEST_SOURCES.items():
-            st.markdown(f"**{category}** — {', '.join(pubs)}")
+            links = ", ".join(
+                f"[{p}]({SOURCE_URLS[p]})" if p in SOURCE_URLS else p
+                for p in pubs
+            )
+            st.markdown(f"**{category}** — {links}")
 
     if clicked:
         try:
