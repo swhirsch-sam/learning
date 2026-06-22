@@ -10,7 +10,7 @@ from views import daily_update, search
 
 st.set_page_config(
     page_title="Intelligence Hub",
-    page_icon="📡",
+    page_icon="🔍",
     layout="wide",
 )
 
