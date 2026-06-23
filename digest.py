@@ -9,7 +9,29 @@ prompt is built from it dynamically, so swapping a publication in or out is a
 one-line edit here with no other code changes.
 """
 
+import random
+import time
+
+import anthropic
+
 from shared import MODEL, SEARCH_TOOL, get_client
+
+
+def _create_with_retry(client, max_retries=5, base_delay=1.0, max_delay=60.0, **kwargs):
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            return client.messages.create(**kwargs)
+        except anthropic.RateLimitError as e:
+            last_exc = e
+        except anthropic.APIStatusError as e:
+            if e.status_code >= 500:
+                last_exc = e
+            else:
+                raise
+        delay = min(base_delay * (2 ** attempt) + random.uniform(0, 1), max_delay)
+        time.sleep(delay)
+    raise last_exc
 
 DIGEST_SOURCES = {
     "Marketing & Advertising": ["Marketing Brew", "Ad Age", "Marketing Dive", "The Drum"],
@@ -66,7 +88,8 @@ Formatting rules:
 
     text = ""
     for i in range(5):
-        response = client.messages.create(
+        response = _create_with_retry(
+            client,
             model=MODEL,
             max_tokens=4096,
             tools=SEARCH_TOOL,
