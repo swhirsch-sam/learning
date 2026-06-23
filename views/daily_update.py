@@ -105,10 +105,7 @@ def render() -> None:
 
     raw = st.session_state.get("digest_raw")
     if not raw:
-        st.info(
-            "Click **Generate / Refresh** to compile today's digest. "
-            "It runs a handful of web searches and takes ~15–30s."
-        )
+        st.info("Click **Generate / Refresh** to compile today's digest.")
         return
 
     _display_digest(raw, st.session_state.get("digest_fetched_at", ""))
